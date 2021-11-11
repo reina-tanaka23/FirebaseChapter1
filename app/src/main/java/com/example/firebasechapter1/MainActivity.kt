@@ -3,20 +3,28 @@ package com.example.firebasechapter1
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.firebasechapter1.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+
+    private var labelView: TextView? = null
+    private var emailText: EditText? = null
+    private var passText: EditText? = null
+    private var mAuth: FirebaseAuth? = null
 
     private var fbase: FirebaseApp? = null
 
@@ -28,16 +36,71 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
 
+        labelView = findViewById(R.id.labelView)
+        emailText = findViewById(R.id.emailText)
+        passText = findViewById(R.id.passText)
+
         fbase = FirebaseApp.initializeApp(this)
 
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        appBarConfiguration = AppBarConfiguration(navController.graph)
-        setupActionBarWithNavController(navController, appBarConfiguration)
+        mAuth = FirebaseAuth.getInstance()
 
         binding.fab.setOnClickListener { view ->
             val msg: String = "Firebase: " + fbase!!.name
             Snackbar.make(view, msg, Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val currentUser = mAuth!!.currentUser
+        updateUI(currentUser)
+    }
+
+
+    fun doLogin(view: View?) {
+        val email = emailText!!.text.toString() + ""
+        val password = passText!!.text.toString() + ""
+        Toast.makeText(
+            this@MainActivity, "Login start.",
+            Toast.LENGTH_SHORT
+        ).show()
+        mAuth!!.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener(
+                this
+            ) { task ->
+                if (task.isSuccessful) {
+                    Toast.makeText(
+                        this@MainActivity, "Logined!!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    val user = mAuth!!.currentUser
+                    updateUI(user)
+                } else {
+                    Toast.makeText(
+                        this@MainActivity, "Authentication failed.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    updateUI(null)
+                }
+            }
+    }
+
+    fun doLogout(view: View?) {
+        mAuth!!.signOut()
+        Toast.makeText(
+            this@MainActivity, "logouted...",
+            Toast.LENGTH_SHORT
+        ).show()
+        updateUI(null)
+    }
+
+
+    fun updateUI(user: FirebaseUser?) {
+        if (user == null) {
+            labelView!!.text = "no login..."
+        } else {
+            labelView!!.text = "login: " + user.email
         }
     }
 
@@ -55,11 +118,5 @@ class MainActivity : AppCompatActivity() {
             R.id.action_settings -> true
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        return navController.navigateUp(appBarConfiguration)
-                || super.onSupportNavigateUp()
     }
 }
