@@ -3,20 +3,28 @@ package com.example.firebasechapter1
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.firebasechapter1.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.FirebaseApp
+import com.google.firebase.database.*
 
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+
+    private var labelView: TextView? = null
+    private var nameText: EditText? = null
+    private var dataText: EditText? = null
+
+    private var database: FirebaseDatabase? = null
 
     private var fbase: FirebaseApp? = null
 
@@ -26,19 +34,52 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        labelView = findViewById(R.id.textView)
+        nameText = findViewById(R.id.nameText)
+        dataText = findViewById(R.id.dataText)
+
+        database = FirebaseDatabase.getInstance()
+        val people = database!!.getReference("people")
+
+        // Read from the database
+        people.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val gt_indicator: GenericTypeIndicator<List<Person?>?> =
+                    object : GenericTypeIndicator<List<Person?>?>() {}
+                val values = snapshot.getValue(gt_indicator)
+                var res = ""
+                if (values != null) {
+                    for (p in values) {
+                        res += p.toString() + "\n"
+                    }
+                }
+                dataText!!.setText(res)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Failed to read value
+            }
+        })
+
         setSupportActionBar(binding.toolbar)
 
         fbase = FirebaseApp.initializeApp(this)
-
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        appBarConfiguration = AppBarConfiguration(navController.graph)
-        setupActionBarWithNavController(navController, appBarConfiguration)
 
         binding.fab.setOnClickListener { view ->
             val msg: String = "Firebase: " + fbase!!.name
             Snackbar.make(view, msg, Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
         }
+    }
+
+    fun doAction(view: View?) {
+        val myRef = database!!.getReference("message")
+        val s = nameText!!.text.toString() + ""
+        myRef.setValue(s)
+        Toast.makeText(
+            this@MainActivity, "write data!",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -55,11 +96,5 @@ class MainActivity : AppCompatActivity() {
             R.id.action_settings -> true
             else -> super.onOptionsItemSelected(item)
         }
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        return navController.navigateUp(appBarConfiguration)
-                || super.onSupportNavigateUp()
     }
 }
