@@ -1,15 +1,24 @@
 package com.example.firebasechapter1
 
+import android.R
+import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.ui.AppBarConfiguration
 import com.example.firebasechapter1.databinding.ActivityMainBinding
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
+import com.facebook.login.widget.LoginButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -24,9 +33,12 @@ class MainActivity : AppCompatActivity() {
     private var labelView: TextView? = null
     private var emailText: EditText? = null
     private var passText: EditText? = null
+    private var buttonFacebookLogin: Button? = null
     private var mAuth: FirebaseAuth? = null
 
     private var fbase: FirebaseApp? = null
+
+    var callbackManager = CallbackManager.Factory.create()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,11 +46,41 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        labelView = findViewById(com.example.firebasechapter1.R.id.labelView)
+        emailText = findViewById(com.example.firebasechapter1.R.id.emailText)
+        passText = findViewById(com.example.firebasechapter1.R.id.passText)
+
+
+        // ここからfacebookログイン処理です。
+        buttonFacebookLogin = findViewById<View>(com.example.firebasechapter1.R.id.login_button) as LoginButton
+        (buttonFacebookLogin as LoginButton).setReadPermissions("email")
+
+        // Callback registration
+        (buttonFacebookLogin as LoginButton).registerCallback(callbackManager, object : FacebookCallback<LoginResult?> {
+            override fun onSuccess(loginResult: LoginResult?) {
+                // App code
+                val msg: String = "facebook login success token is : " + loginResult?.accessToken
+                Toast.makeText(this@MainActivity, msg, Toast.LENGTH_LONG)
+                    .show()
+            }
+
+            override fun onCancel() {
+                // App code
+                Toast.makeText(this@MainActivity, "facebook login cancel", Toast.LENGTH_LONG)
+                    .show()
+            }
+
+            override fun onError(exception: FacebookException) {
+                // App code
+                Toast.makeText(this@MainActivity, "facebook login error", Toast.LENGTH_LONG)
+                    .show()
+            }
+        })
+
+        // ここまでfacebookログイン処理です。
+
         setSupportActionBar(binding.toolbar)
 
-        labelView = findViewById(R.id.labelView)
-        emailText = findViewById(R.id.emailText)
-        passText = findViewById(R.id.passText)
 
         fbase = FirebaseApp.initializeApp(this)
 
@@ -49,6 +91,11 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(view, msg, Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        callbackManager.onActivityResult(requestCode, resultCode, data)
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onStart() {
@@ -101,22 +148,6 @@ class MainActivity : AppCompatActivity() {
             labelView!!.text = "no login..."
         } else {
             labelView!!.text = "login: " + user.email
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
         }
     }
 }
